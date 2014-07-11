@@ -62,11 +62,10 @@ RE_VIDEO_ID = Regex('v=([^&]+)')
 RE_COMMENT_ENTRY_ID = Regex('comment:(.*)')
 RE_SUBSCRIPTION_ID = Regex('subscription:(.*)')
 
-TITLE = 'YouTube'
+TITLE = L('YouTube')
 ART = 'art-default.jpg'
 ICON = 'icon-default.png'
 PREFS = 'icon-prefs.png'
-#SEARCH = 'icon-search.png'
 ACTIVITY = 'icon-activity.png'
 CHANNELS = 'icon-channels.png'
 COMMENT = 'icon-comment.png'
@@ -112,6 +111,7 @@ def MainMenu():
   else:
     localizedVideosName = L('Videos for ')+ regionName
   if Authenticate():
+    oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('New Subscriptions Videos'), url = YOUTUBE_USER_NEWSUBSCRIPTIONS % 'default', video_only = True),title = L('New Subscriptions Videos'), thumb = R(VIDEOS)))
     oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('Recommendations'), url = YOUTUBE_USER_RECOMMENDATIONS % 'default'),title = L('Recommendations'), thumb = R(RECOMMENDATIONS)))
     oc.add(DirectoryObject(key = Callback(ParseSubscriptions, title=L('Subscriptions'), url=YOUTUBE_USER_SUBSCRIPTIONS % 'default'),title = L('Subscriptions'), thumb=R(SUBSCRIPTIONS)))
     oc.add(DirectoryObject(key=Callback(PlaylistMenu, title=L('Play Lists')), title=L('Play Lists'), thumb=R(PLAYLISTS)))
@@ -307,8 +307,8 @@ def CheckRejectedEntry(entry):
 
   return False
 
-@route(PREFIX + '/parsefeed', page=int, suppresschannel=bool)
-def ParseFeed(title, url, page = 1, author = 'author', suppresschannel = False):
+@route(PREFIX + '/parsefeed', page=int, suppresschannel=bool, video_only=bool)
+def ParseFeed(title, url, page = 1, author = 'author', suppresschannel = False, video_only = False):
   oc = ObjectContainer(title2=title, replace_parent=(page > 1))
 
   # Construct the appropriate URL
@@ -363,11 +363,11 @@ def ParseFeed(title, url, page = 1, author = 'author', suppresschannel = False):
         except: pass
 
       thumb = video['media$group']['media$thumbnail'][0]['url']
-      duration_units = 'seconds'
+      duration_units = L('seconds')
       video_duration = int(video['media$group']['yt$duration']['seconds'])
       duration = video_duration * 1000
       if video_duration > 59:
-        duration_units = 'minutes'
+        duration_units = L('minutes')
         video_duration = video_duration / 60
       video_title += ' [%s %s]'%(video_duration, duration_units)
 
@@ -387,7 +387,7 @@ def ParseFeed(title, url, page = 1, author = 'author', suppresschannel = False):
         try: date = Datetime.ParseDate(video['updated']['$t'].split('T')[0]).date()
         except: pass
 
-      if video_id is not None and '/playlist/' not in url:
+      if video_id is not None and '/playlist/' not in url and not video_only:
         oc.add(DirectoryObject(
           key = Callback(
             VideoSubMenu,
@@ -422,8 +422,8 @@ def ParseFeed(title, url, page = 1, author = 'author', suppresschannel = False):
       start_index = int(rawfeed['feed']['openSearch$startIndex']['$t'])
       if (start_index + items_per_page) < total_results:
         oc.add(NextPageObject(
-          key = Callback(ParseFeed, title = title, url = url, page = page + 1, author = author), 
-          title = 'Next'))
+          key = Callback(ParseFeed, title = title, url = url, page = page + 1, author = author, video_only = video_only), 
+          title = L('Next Page')))
 
   if len(oc) == 0:
     return ObjectContainer(header=L('Error'), message=L('This feed does not contain any video'))
@@ -471,11 +471,11 @@ def ParseSubscriptionFeed(title, url = '',page = 1, previous = 0, suppresschanne
           except:
             summary = details['media$group']['media$description']['$t']
             summary = summary.split('!express')[0]
-          duration_units = 'seconds'
+          duration_units = L('seconds')
           video_duration = int(details['media$group']['yt$duration']['seconds'])
           duration = video_duration * 1000
           if video_duration > 59:
-            duration_units = 'minutes'
+            duration_units = L('minutes')
             video_duration = video_duration / 60
           video_title += ' [%s %s]'%(video_duration, duration_units)
           try:
@@ -517,7 +517,7 @@ def ParseSubscriptionFeed(title, url = '',page = 1, previous = 0, suppresschanne
     if (start_index + items_per_page) < total_results:
       oc.add(NextPageObject(
         key = Callback(ParseSubscriptionFeed, title = title, url = url, page = page + 1, previous = page, suppresschannel = True),
-        title = 'Next...'))
+        title = L('Next Page')))
 
   if len(oc) == 0:
     return ObjectContainer(header=L('Error'), message=L('This feed does not contain any video'))
@@ -525,7 +525,7 @@ def ParseSubscriptionFeed(title, url = '',page = 1, previous = 0, suppresschanne
     return oc
 
 @route(PREFIX + '/parseactivity', page=int, previous=int)
-def ParseActivityFeed(title, url = '',page = 1, previous = 0):
+def ParseActivityFeed(title, url = '', page = 1, previous = 0):
   oc = ObjectContainer(title2 = title, replace_parent = (page > 1 or previous > 0))
 
   # Construct the appropriate URL
@@ -572,24 +572,24 @@ def ParseActivityFeed(title, url = '',page = 1, previous = 0):
       video_title = details['title']['$t']
       video_author = details['author'][0]['name']['$t']
       thumb = details['media$group']['media$thumbnail'][0]['url']
-      duration_units = 'sec'
+      duration_units = L('seconds')
       video_duration = int(details['media$group']['yt$duration']['seconds'])
       duration = video_duration * 1000 #milliseconds?
       if video_duration > 59:
-        duration_units = 'min'
+        duration_units = L('minuntes')
         video_duration = video_duration / 60
       try: rating = float(details['gd$rating']['average']) * 2
       except: pass
       summary = video_title + ' [%s %s]'%(video_duration, duration_units)
       if entry_type == 'video_rated':
-        entry_title = 'Liked on %s'%(strdate)
+        entry_title = L('Liked on ') + strdate
       elif entry_type == 'video_uploaded':
-        entry_title = 'Uploaded on %s'%(strdate)
+        entry_title = L('Uploaded on ') + strdate
       elif entry_type == 'video_commented':
-        entry_title = 'Commented on %s-%s'%(strdate, summary)
+        entry_title = L('Commented on ') + "%s-%s" % (strdate, summary)
         summary = GetVideoComment(video)
       elif entry_type == 'video_favorited':
-        entry_title = 'Added to Favorites on %s'%(strdate)
+        entry_title = L('Added to Favorites on ') + strdate
       oc.add(DirectoryObject(key = Callback(VideoSubMenu,title = video_title,video_id = video_id,video_url = YOUTUBE_VIDEO_PAGE%(video_id),summary = summary,thumb = thumb,originally_available_at = date,rating = rating,duration = duration),title = entry_title,summary = summary,duration = duration,thumb = Callback(GetThumb, url = thumb)))
     else:
       oc.add(DirectoryObject(key = Callback(NoOp, title = entry_type, message = entry_type), title = entry_type))
@@ -601,7 +601,7 @@ def ParseActivityFeed(title, url = '',page = 1, previous = 0):
     start_index = int(rawfeed['feed']['openSearch$startIndex']['$t'])
     if (start_index + items_per_page) < total_results:
       oc.add(NextPageObject(
-        key = Callback(ParseActivityFeed, title = title, url = url, page = page + 1, previous = page), title = 'Next...'))
+        key = Callback(ParseActivityFeed, title = title, url = url, page = page + 1, previous = page), title = L('Next Page')))
 
   if len(oc) == 0:
     return ObjectContainer(header=L('Error'), message=L('This feed does not contain any entries'))
@@ -643,7 +643,7 @@ def ParseChannelFeed(title, url, page = 1):
       if (start_index + items_per_page) < total_results:
         oc.add(NextPageObject(
           key = Callback(ParseFeed, title = title, url = url, page = page + 1), 
-          title = 'Next'))
+          title = L('Next Page')))
 
   if len(oc) == 0:
     return ObjectContainer(header=L('Error'), message=L('This query did not return any result'))
@@ -687,7 +687,7 @@ def ParseChannelSearch(title, url, page = 1):
       if (start_index + items_per_page) < total_results:
         oc.add(NextPageObject(
           key = Callback(ParseChannelSearch, title = title, url = url, page = page + 1), 
-          title = 'Next'))
+          title = L('Next Page')))
 
   if len(oc) == 0:
     return ObjectContainer(header=L('Error'), message=L('This feed does not contain any video'))
@@ -721,7 +721,7 @@ def ParsePlaylists(title, url, page = 1):
     if (start_index + items_per_page) < total_results:
       oc.add(NextPageObject(
         key = Callback(ParseFeed, title = title, url = url, page = page + 1), 
-        title = 'Next'))
+        title = L('Next Page')))
 
   if len(oc) == 0:
     return ObjectContainer(header=L('Error'), message=L('This query did not return any result'))
@@ -739,7 +739,7 @@ def AddPlaylists( objContainer, authorId, authorName ):
     for playlist in rawfeed['feed']['entry']:
       videos = playlist['yt$countHint']['$t']
       if videos <> 0 :
-        title = 'Playlist: ' + playlist['title']['$t'] + ' (%s videos)' % videos #display playlist title and number of videos
+        title = L('Playlist') + ': ' + playlist['title']['$t'] + ' (%s videos)' % videos #display playlist title and number of videos
         link = playlist['content']['src']
         link = AddUrlParameter(link, 'orderby=title') #list of videos in play list to be sorted by title
         thumbUrl = playlist['media$group']['media$thumbnail'][0]['url'].replace('default.jpg', 'hqdefault.jpg')
@@ -797,7 +797,7 @@ def ParseSubscriptions(title, url = '', page = 1):
       if (start_index + items_per_page) < total_results:
         oc.add(NextPageObject(
           key = Callback(ParseSubscriptions, title = title, url = url, page = page + 1), 
-          title = 'Next'))
+          title = L('Next Page')))
     return oc
 
 @route(PREFIX + '/subs')
@@ -806,15 +806,15 @@ def SubscriptionMenu(author, authorId, subscriptionId):
   videos = YOUTUBE_USER_VIDEOS % (authorId)
   activity = YOUTUBE_USER_ACTIVITY % (authorId)
   oc.add(DirectoryObject(
-    key = Callback(ParseSubscriptionFeed, title = author+' Videos', url = videos),
-    title = 'Videos', thumb = R(VIDEOS)))
+    key = Callback(ParseSubscriptionFeed, title = author+L(' (Videos)'), url = videos),
+    title = L('Videos'), thumb = R(VIDEOS)))
   oc.add(DirectoryObject(
-    key = Callback(ParseActivityFeed, title = author+' Activity', url = activity),
-    title = 'Activity', thumb=R(ACTIVITY)))
+    key = Callback(ParseActivityFeed, title = author+L(' (Activity)'), url = activity),
+    title = L('Activity'), thumb=R(ACTIVITY)))
   oc = AddPlaylists( objContainer = oc, authorId = authorId, authorName = author )
   oc.add(DirectoryObject(
     key = Callback(UnSubscribe, author = author, authorId = subscriptionId),
-    title = 'Unsubscribe', thumb = R(UNSUBSCRIBE)))
+    title = L('Unsubscribe'), thumb = R(UNSUBSCRIBE)))
   return oc
 
 @route(PREFIX + '/channelmenu')
@@ -823,18 +823,18 @@ def ChannelMenu(author, authorId):
   videos = YOUTUBE_USER_VIDEOS % (authorId)
   activity = YOUTUBE_USER_ACTIVITY % (authorId)
   oc.add(DirectoryObject(
-    key = Callback(ParseSubscriptionFeed, title = author+' Videos', url = videos),
-    title = 'Videos', thumb = R(VIDEOS)))
+    key = Callback(ParseSubscriptionFeed, title = author+L(' (Videos)'), url = videos),
+    title = L('Videos'), thumb = R(VIDEOS)))
   AddPlaylists(objContainer = oc, authorId = authorId, authorName = author )
   oc.add(DirectoryObject(
-    key = Callback(ParseActivityFeed, title = author+' Activity', url = activity),
-    title = 'Activity', thumb = R(ACTIVITY)))
+    key = Callback(ParseActivityFeed, title = author+L(' (Activity)'), url = activity),
+    title = L('Activity'), thumb = R(ACTIVITY)))
   oc.add(DirectoryObject(
     key = Callback(Subscribe, author = author, authorId = authorId),
-    title = 'Subscribe to channel', thumb = R(SUBSCRIBE)))
+    title = L('Subscribe to channel'), thumb = R(SUBSCRIBE)))
   oc.add(DirectoryObject(
     key = Callback(Subscribe, author = author, authorId = authorId, subscription_type = 'activity'),
-    title = 'Subscribe to activity', thumb = R(SUBSCRIBE)))
+    title = L('Subscribe to activity'), thumb = R(SUBSCRIBE)))
   return oc
 
 @route(PREFIX + '/like')
@@ -858,9 +858,9 @@ def Subscribe(author, authorId, subscription_type = 'channel'):
     '<yt:username>%s</yt:username>'%(authorId)]
   try:
     result = PostCommand(url, elements)
-    return ObjectContainer(header = 'Subscribed', message = 'Successfully subscribed to %s\'s %s' % (author, subscription_type))
+    return ObjectContainer(header = L('Subscribed'), message = L('Successfully subscribed to ') + '%s\'s %s' % (author, subscription_type))
   except:
-    return ObjectContainer(header = L('Error'), message = 'Failed to subscribe to %s\'s %s' % (author, subscription_type))
+    return ObjectContainer(header = L('Error'), message = L('Failed to subscribe to ') + '%s\'s %s' % (author, subscription_type))
 
 @route(PREFIX + '/unsubscribe')
 def UnSubscribe(author, authorId):
@@ -868,9 +868,9 @@ def UnSubscribe(author, authorId):
   headers = {'Content-Type': 'application/atom+xml', 'GData-Version': '2', 'X-HTTP-Method-Override': 'DELETE'}
   try:
     result = HTTP.Request(url, headers = headers, data = '').content
-    return ObjectContainer(header = 'Unsubscribed', message = 'Successfully unsubscribed from %s\'s channel' % (author))
+    return ObjectContainer(header = L('Unsubscribed'), message = L('Successfully unsubscribed from channel: ') + author)
   except:
-    return ObjectContainer(header = L('Error'), message = 'Failed to unsubscribe from %s\'s channel' % (author))
+    return ObjectContainer(header = L('Error'), message = L('Failed to unsubscribe from channel: ') + author)
 
 ####################################################################################################
 #Adds video to watch later playlist
@@ -885,9 +885,9 @@ def WatchLater(video_id):
   headers = {'Content-Type': 'application/atom+xml', 'GData-Version': '2'}
   req = HTTP.Request(url, headers = headers, data = request_data)
   if video_id in req.content:
-    return ObjectContainer(header = 'Added to Watch Later', message = 'Successfully added video to Watch Later playlist')
+    return ObjectContainer(header = L('Added to Watch Later'), message = L('Successfully added video to Watch Later playlist'))
   else:
-    return ObjectContainer(header = 'Error', message = 'Failed to add video to Watch Later playlist')
+    return ObjectContainer(header = L('Error'), message = L('Failed to add video to Watch Later playlist'))
  
 @route(PREFIX + '/comments', page=int, previous=int)  
 def CommentMenu(title, video_id, thumb = None, page = 1, previous = 0):
@@ -905,10 +905,12 @@ def CommentMenu(title, video_id, thumb = None, page = 1, previous = 0):
         comment_id = RE_COMMENT_ENTRY_ID.search(comment['id']['$t']).group(1)
         message = comment['content']['$t']
         title = comment['title']['$t']
+        if message == "" and title == "":
+          continue
         published = comment['published']['$t']
         author = comment['author'][0]['name']['$t']
         comment_title = '%s %s: %s'%(timestamp(published), author, title)
-        prompt = 'Follow up to: '+title
+        prompt = L('Follow up to: ')+title
         oc.add(InputDirectoryObject(
           key = Callback(PostComment, video_id = video_id, comment_id = comment_id),
           title = comment_title,
@@ -918,7 +920,7 @@ def CommentMenu(title, video_id, thumb = None, page = 1, previous = 0):
       except: pass
 
   if len(oc) == 0:
-    return ObjectContainer(header='There are no comments', message='Be the first to comment on this video')
+    return ObjectContainer(header=L('There are no comments'), message=L('Be the first to comment on this video'))
   else:
     if rawfeed['feed'].has_key('openSearch$totalResults'):
       total_results = int(rawfeed['feed']['openSearch$totalResults']['$t'])
@@ -927,13 +929,13 @@ def CommentMenu(title, video_id, thumb = None, page = 1, previous = 0):
       if (start_index + items_per_page) < total_results:
         oc.add(NextPageObject(
           key = Callback(CommentMenu, title = title, video_id = video_id, page = page + 1, previous = page), 
-          title = 'Next...'))
+          title = L('Next Page')))
     return oc
 
 @route(PREFIX + '/postcomment')
 def PostComment(video_id, query = None, comment_id = None):
   if (query is None) or (query == ''):
-    return ObjectContainer(header = L('Error'), message = 'No comment supplied!')
+    return ObjectContainer(header = L('Error'), message = L('No comment supplied!'))
   url = YOUTUBE_COMMENT%(video_id)
   elements = []
   if comment_id is not None:
@@ -942,9 +944,9 @@ def PostComment(video_id, query = None, comment_id = None):
   elements.append('<content>%s</content>'%(encodeTags(query)))
   try:
     result = PostCommand(url, elements)
-    return ObjectContainer(header = 'Comment posted OK', message = query)
+    return ObjectContainer(header = L('Comment posted OK'), message = query)
   except:
-    return ObjectContainer(header = L('Error'), message = 'Comment failed to post')
+    return ObjectContainer(header = L('Error'), message = L('Comment failed to post'))
 
 ####################################################################################################
 @route(PREFIX + '/postcommand', elements=list)
@@ -1019,21 +1021,23 @@ def VideoSubMenu(title, video_id, video_url, summary = None, thumb = None, origi
   if author_id is not None and suppresschannel == False:
     oc.add(DirectoryObject(
       key = Callback(ChannelMenu, author = author, authorId = author_id),
-      title = '%s\'s channel'%(author), thumb = GetChannelThumb(author_id)))
+      title = author +' (Channel)', thumb = GetChannelThumb(author_id)))
   oc.add(DirectoryObject(
     key = Callback(ParseFeed, title = L('View Related'), url = YOUTUBE_RELATED_FEED % video_id),
     title = L('View Related'), thumb = R(RELATED)))
   oc.add(DirectoryObject(
     key = Callback(CommentMenu, title = title, video_id = video_id),
-    title = 'Comments', thumb = R(COMMENTS)))
+    title = L('Comments'), thumb = R(COMMENTS)))
+  ''' Currently disabled due to broken implementation
   oc.add(InputDirectoryObject(
     key = Callback(PostComment, video_id = video_id),
-    title = 'Post Comment',
+    title = L('Post Comment'),
     thumb = R(COMMENT),
-    prompt = 'Enter comment'))
+    prompt = L('Enter comment')))
+  '''
   oc.add(DirectoryObject(
     key = Callback(LikeVideo, title = title, video_id = video_id, rating = 'like'),
-    title = 'Like',
+    title = L('Like'),
     thumb = R(LIKE),
     summary = summary))
   oc.add(DirectoryObject(
@@ -1043,7 +1047,7 @@ def VideoSubMenu(title, video_id, video_url, summary = None, thumb = None, origi
     summary = summary))
   oc.add(DirectoryObject(
     key = Callback(WatchLater, video_id = video_id),
-    title = 'Watch Later', thumb = R(WATCHLATER)))
+    title = L('Watch Later'), thumb = R(WATCHLATER)))
   return oc
 
 @route(PREFIX + '/videoinfo')
