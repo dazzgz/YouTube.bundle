@@ -925,7 +925,8 @@ def CommentMenu(title, video_id, thumb = None, page = 1, previous = 0):
     if rawfeed['feed'].has_key('openSearch$totalResults'):
       total_results = int(rawfeed['feed']['openSearch$totalResults']['$t'])
       items_per_page = int(rawfeed['feed']['openSearch$itemsPerPage']['$t'])
-      start_index = int(rawfeed['feed']['openSearch$startIndex']['$t'])
+      try: start_index = int(rawfeed['feed']['openSearch$startIndex']['$t'])
+      except: start_index = 0
       if (start_index + items_per_page) < total_results:
         oc.add(NextPageObject(
           key = Callback(CommentMenu, title = title, video_id = video_id, page = page + 1, previous = page), 
