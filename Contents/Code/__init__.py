@@ -309,7 +309,7 @@ def CheckRejectedEntry(entry):
 
 @route(PREFIX + '/parsefeed', page=int, suppresschannel=bool, video_only=bool)
 def ParseFeed(title, url, page = 1, author = 'author', suppresschannel = False, video_only = False):
-  oc = ObjectContainer(title2=title, replace_parent=(page > 1))
+  oc = ObjectContainer(title2=(u'%s' % title), replace_parent=(page > 1))
 
   # Construct the appropriate URL
   local_url = AddJSONSuffix(url)
@@ -559,7 +559,7 @@ def ParseActivityFeed(title, url = '', page = 1, previous = 0):
       channelid = video['yt$userId']['$t']
       try:
         channel_details = GetChannelInfo(channelid)['entry']
-        channel_name = channel_details['title']['$t']
+        channel_name = u'%s' % channel_details['title']['$t']
         thumb = channel_details['media$thumbnail']['url']
         summary = channel_details['content']['$t']
       except:
@@ -739,7 +739,7 @@ def AddPlaylists( objContainer, authorId, authorName ):
     for playlist in rawfeed['feed']['entry']:
       videos = playlist['yt$countHint']['$t']
       if videos <> 0 :
-        title = L('Playlist') + ': ' + playlist['title']['$t'] + ' (%s videos)' % videos #display playlist title and number of videos
+        title = u'%s: %s (%d videos)' % (L('Playlist'), playlist['title']['$t'], videos) #display playlist title and number of videos
         link = playlist['content']['src']
         link = AddUrlParameter(link, 'orderby=title') #list of videos in play list to be sorted by title
         thumbUrl = playlist['media$group']['media$thumbnail'][0]['url'].replace('default.jpg', 'hqdefault.jpg')
@@ -764,7 +764,7 @@ def ParseSubscriptions(title, url = '', page = 1):
       link = subscription['content']['src']
       thumbUrl = subscription['media$thumbnail']['url'].replace('default.jpg', 'hqdefault.jpg') #URL for thubnail image for channel/subscription
       author = subscription['title']['$t'].split(':',1)[1].strip()
-      title = author
+      title = u'%s' % author
       try:
         authorId = subscription['yt$channelId']['$t']
       except:
@@ -775,7 +775,7 @@ def ParseSubscriptions(title, url = '', page = 1):
         subscription_id = authorId
       link = YOUTUBE_USER_VIDEOS % (authorId)
       item = DirectoryObject(
-        key = Callback(SubscriptionMenu, author = author, authorId = authorId, subscriptionId = subscription_id),
+        key = Callback(SubscriptionMenu, author = title, authorId = authorId, subscriptionId = subscription_id),
         title = title, thumb = thumbUrl, summary='')
       entries[author.lower()] = item
   authors = entries.keys()
