@@ -111,13 +111,13 @@ def MainMenu():
   else:
     localizedVideosName = L('Videos for ')+ regionName
   if Authenticate():
-    oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('New Subscriptions Videos'), url = YOUTUBE_USER_NEWSUBSCRIPTIONS % 'default', video_only = True),title = L('New Subscriptions Videos'), thumb = R(VIDEOS)))
-    oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('Recommendations'), url = YOUTUBE_USER_RECOMMENDATIONS % 'default'),title = L('Recommendations'), thumb = R(RECOMMENDATIONS)))
     oc.add(DirectoryObject(key = Callback(ParseSubscriptions, title=L('Subscriptions'), url=YOUTUBE_USER_SUBSCRIPTIONS % 'default'),title = L('Subscriptions'), thumb=R(SUBSCRIPTIONS)))
     oc.add(DirectoryObject(key=Callback(PlaylistMenu, title=L('Play Lists')), title=L('Play Lists'), thumb=R(PLAYLISTS)))
+  oc.add(DirectoryObject(key = Callback(MyAccount, title = L('My Account')), title = L('My Account'), thumb=GetChannelThumb('default')))
+  oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('Recommendations'), url = YOUTUBE_USER_RECOMMENDATIONS % 'default'),title = L('Recommendations'), thumb = R(RECOMMENDATIONS)))
+    oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('New Subscriptions Videos'), url = YOUTUBE_USER_NEWSUBSCRIPTIONS % 'default', video_only = True),title = L('New Subscriptions Videos'), thumb = R(VIDEOS)))
   oc.add(DirectoryObject(key = Callback(VideosMenu, title = localizedVideosName), title = localizedVideosName, thumb=R(VIDEOS)))
   oc.add(DirectoryObject(key = Callback(ChannelsMenu, title = L('Channels')), title = L('Channels'), thumb=R(CHANNELS)))
-  oc.add(DirectoryObject(key = Callback(MyAccount, title = L('My Account')), title = L('My Account'), thumb=GetChannelThumb('default')))
   oc.add(InputDirectoryObject(key = Callback(Search, search_type = 'videos', title = L('Search Videos')), prompt = L('Search Videos'), title = L('Search Videos')))
   oc.add(InputDirectoryObject(key = Callback(Search, search_type = 'videos', title = L('Search Videos (long)'), search_options = '&duration=long'), prompt = L('Search Videos (long)'), title = L('Search Videos (long)')))
   return oc
@@ -141,9 +141,9 @@ def VideosMenu(title):
 @route(PREFIX + '/playlists')
 def PlaylistMenu(title):
   oc = ObjectContainer(title2 = title)
+  AddPlaylists( oc, 'default', '' )
   oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('Favorites'), url = YOUTUBE_USER_FAVORITES % 'default', author = 'lookup'),title = L('Favorites'), thumb = R(FAVORITES)))
   oc.add(DirectoryObject(key = Callback(ParseFeed, title=L('Watch Later'), url=YOUTUBE_USER_WATCHLATER % 'default'),title = L('Watch Later'), thumb=R(SAVEFORLATER)))
-  AddPlaylists( oc, 'default', '' )
   return oc
   
 ####################################################################################################
@@ -387,7 +387,7 @@ def ParseFeed(title, url, page = 1, author = 'author', suppresschannel = False, 
         try: date = Datetime.ParseDate(video['updated']['$t'].split('T')[0]).date()
         except: pass
 
-      if video_id is not None and '/playlist/' not in url and not video_only:
+      if video_id is not None and '/playlists/' not in url and not video_only:
         oc.add(DirectoryObject(
           key = Callback(
             VideoSubMenu,
@@ -741,7 +741,7 @@ def AddPlaylists( objContainer, authorId, authorName ):
       if videos <> 0 :
         title = u'%s: %s (%d videos)' % (L('Playlist'), playlist['title']['$t'], videos) #display playlist title and number of videos
         link = playlist['content']['src']
-        link = AddUrlParameter(link, 'orderby=title') #list of videos in play list to be sorted by title
+        # link = AddUrlParameter(link, 'orderby=title') #list of videos in play list to be sorted by title
         thumbUrl = playlist['media$group']['media$thumbnail'][0]['url'].replace('default.jpg', 'hqdefault.jpg')
         summary = playlist['summary']['$t']
         objContainer.add(DirectoryObject(
@@ -780,9 +780,9 @@ def ParseSubscriptions(title, url = '', page = 1):
       entries[author.lower()] = item
   authors = entries.keys()
   authors.sort()
-  oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('New Videos'), url = YOUTUBE_USER_NEWSUBSCRIPTIONS % 'default'), title = L('New Videos'), thumb = R(VIDEOS)))
   for author in authors:
     oc.add(entries[author])
+  oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('New Videos'), url = YOUTUBE_USER_NEWSUBSCRIPTIONS % 'default'), title = L('New Videos'), thumb = R(VIDEOS)))
 
   if len(oc) == 0:
     if 'default' in url:
@@ -808,10 +808,10 @@ def SubscriptionMenu(author, authorId, subscriptionId):
   oc.add(DirectoryObject(
     key = Callback(ParseSubscriptionFeed, title = author+L(' (Videos)'), url = videos),
     title = L('Videos'), thumb = R(VIDEOS)))
+  oc = AddPlaylists( objContainer = oc, authorId = authorId, authorName = author )
   oc.add(DirectoryObject(
     key = Callback(ParseActivityFeed, title = author+L(' (Activity)'), url = activity),
     title = L('Activity'), thumb=R(ACTIVITY)))
-  oc = AddPlaylists( objContainer = oc, authorId = authorId, authorName = author )
   oc.add(DirectoryObject(
     key = Callback(UnSubscribe, author = author, authorId = subscriptionId),
     title = L('Unsubscribe'), thumb = R(UNSUBSCRIBE)))
@@ -1019,13 +1019,13 @@ def VideoSubMenu(title, video_id, video_url, summary = None, thumb = None, origi
     rating = rating,
     duration = duration))
 #if we have the author id (channelid) and we have not come directly from the channel as a subscription, display the channel thumb
+  oc.add(DirectoryObject(
+    key = Callback(ParseFeed, title = L('View Related'), url = YOUTUBE_RELATED_FEED % video_id),
+    title = L('View Related'), thumb = R(RELATED)))
   if author_id is not None and suppresschannel == False:
     oc.add(DirectoryObject(
       key = Callback(ChannelMenu, author = author, authorId = author_id),
       title = author +' (Channel)', thumb = GetChannelThumb(author_id)))
-  oc.add(DirectoryObject(
-    key = Callback(ParseFeed, title = L('View Related'), url = YOUTUBE_RELATED_FEED % video_id),
-    title = L('View Related'), thumb = R(RELATED)))
   oc.add(DirectoryObject(
     key = Callback(CommentMenu, title = title, video_id = video_id),
     title = L('Comments'), thumb = R(COMMENTS)))
