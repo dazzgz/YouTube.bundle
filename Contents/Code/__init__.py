@@ -115,7 +115,7 @@ def MainMenu():
     oc.add(DirectoryObject(key=Callback(PlaylistMenu, title=L('Play Lists')), title=L('Play Lists'), thumb=R(PLAYLISTS)))
   oc.add(DirectoryObject(key = Callback(MyAccount, title = L('My Account')), title = L('My Account'), thumb=GetChannelThumb('default')))
   oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('Recommendations'), url = YOUTUBE_USER_RECOMMENDATIONS % 'default'),title = L('Recommendations'), thumb = R(RECOMMENDATIONS)))
-    oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('New Subscriptions Videos'), url = YOUTUBE_USER_NEWSUBSCRIPTIONS % 'default', video_only = True),title = L('New Subscriptions Videos'), thumb = R(VIDEOS)))
+  oc.add(DirectoryObject(key = Callback(ParseFeed, title = L('New Subscriptions Videos'), url = YOUTUBE_USER_NEWSUBSCRIPTIONS % 'default', video_only = True),title = L('New Subscriptions Videos'), thumb = R(VIDEOS)))
   oc.add(DirectoryObject(key = Callback(VideosMenu, title = localizedVideosName), title = localizedVideosName, thumb=R(VIDEOS)))
   oc.add(DirectoryObject(key = Callback(ChannelsMenu, title = L('Channels')), title = L('Channels'), thumb=R(CHANNELS)))
   oc.add(InputDirectoryObject(key = Callback(Search, search_type = 'videos', title = L('Search Videos')), prompt = L('Search Videos'), title = L('Search Videos')))
